@@ -1,0 +1,48 @@
+name: Deploy api-gateway
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+
+      - name: Build Docker Image
+        run: docker build -t snsports14/api-gateway .
+
+      - name: Push Docker Image
+        run: docker push snsports14/api-gateway
+
+  deploy:
+    name: Deploy to EC2
+    needs: build
+    runs-on: self-hosted
+
+    steps:
+      - name: Pull Latest Docker Image
+        run: docker pull snsports14/api-gateway
+
+      - name: Remove Old Container
+        run: |
+          if [ "$(docker ps -aq -f name=api-gateway)" ]; then
+            docker rm -f api-gateway
+          fi
+
+      - name: Run New Docker Container
+        run: |
+          docker run -d -p 5000:5000 \
+            --name api-gateway \
+            --restart unless-stopped \
+            snsports14/api-gateway
+ 
+ 
