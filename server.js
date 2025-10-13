@@ -41,16 +41,36 @@ app.get('/gatewayhealth', (_, res) =>
 
 
 
+// for (const [base, cfg] of Object.entries(routes)) {
+//     // console.log("kjgrtt")
+//     app.use(base, createProxyMiddleware({
+//         target: cfg.target, changeOrigin: true,
+//         pathRewrite: (path) => path.replace(base, '/'),
+//         onProxyReq: (proxyReq, req) => {
+//             // propagate user id for tracing (optional)
+//             if (req.headers['x-request-id']) proxyReq.setHeader('x-request-id', req.headers['x-request-id']);
+//         }
+//     }));
+// }
 for (const [base, cfg] of Object.entries(routes)) {
-    // console.log("kjgrtt")
-    app.use(base, createProxyMiddleware({
-        target: cfg.target, changeOrigin: true,
-        pathRewrite: (path) => path.replace(base, '/'),
-        onProxyReq: (proxyReq, req) => {
-            // propagate user id for tracing (optional)
-            if (req.headers['x-request-id']) proxyReq.setHeader('x-request-id', req.headers['x-request-id']);
-        }
-    }));
+  app.use(base, createProxyMiddleware({
+    target: cfg.target,
+    changeOrigin: true,
+    pathRewrite: (path) => path.replace(base, '/'),
+    onProxyReq: (proxyReq, req) => {
+      // ✅ Forward cookies for auth
+       console.log('[Gateway] Incoming cookie:', req.headers);
+      if (req.headers.cookie) {
+        console.log('[Gateway] Incoming cookie:', req.headers.cookie);
+        proxyReq.setHeader('Cookie', req.headers.cookie);
+      }
+
+      // ✅ Forward request ID for tracing
+      if (req.headers['x-request-id']) {
+        proxyReq.setHeader('x-request-id', req.headers['x-request-id']);
+      }
+    }
+  }));
 }
 
 
